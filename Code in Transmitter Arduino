@@ -1,0 +1,74 @@
+// Transmitter_5bit_pin13.ino
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x26, 16, 2); // change address if needed
+
+const int txPin = 13;
+const unsigned int bitDelay = 200; // ms per bit (adjust: smaller = faster)
+
+// Character map used by both boards:
+// 0..25 => 'A'..'Z'
+// 26 => ' ' (space)
+// 27 => '-'
+// 28 => '!'
+// 29 => '.'
+// 30 => '/'
+// 31 => '?'
+int charToCode(char c) {
+  if (c >= 'A' && c <= 'Z') return c - 'A';
+  if (c >= 'a' && c <= 'z') return c - 'a';
+  if (c == ' ') return 26;
+  if (c == '-') return 27;
+  if (c == '!') return 28;
+  if (c == '.') return 29;
+  if (c == '/') return 30;
+  if (c == '?') return 31;
+  return 26; // default to space for unknown chars
+}
+
+void send5bit(int code) {
+  // Start bit (LOW)
+  digitalWrite(txPin, LOW);
+  delay(bitDelay);
+
+  // 5 data bits, LSB first (bit0..bit4)
+  for (int i = 0; i < 5; ++i) {
+    bool bit = (code >> i) & 0x01;
+    digitalWrite(txPin, bit ? HIGH : LOW);
+    delay(bitDelay);
+  }
+
+  // Stop bit (HIGH)
+  digitalWrite(txPin, HIGH);
+  delay(bitDelay); // one stop bit
+  delay(bitDelay); // extra gap to separate characters (optional)
+}
+
+void setup() {
+  pinMode(txPin, OUTPUT);
+  digitalWrite(txPin, HIGH); // idle HIGH
+  lcd.init();
+  lcd.backlight();
+
+  String message = "Hello World."; // message to send
+  lcd.setCursor(0, 0);
+  lcd.print("Text:");
+  lcd.setCursor(0, 1);
+  lcd.print(message);
+  delay(1000);
+
+  // Transmit message
+  for (unsigned int i = 0; i < message.length(); ++i) {
+    int code = charToCode(message[i]);
+    send5bit(code);
+  }
+
+  // done — optionally loop or stop
+  while (1) {
+    digitalWrite(LED_BUILTIN, millis() % 500 < 250 ? HIGH : LOW);
+  }
+}
+
+void loop() {
+}
