@@ -1,0 +1,92 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x26, 16, 2); // change address if needed
+
+const int rxPin = 13;
+const unsigned int bitDelay = 200; // must match transmitter
+
+// Reverse map: code -> character
+const char codeToChar[32] = {
+  'A','B','C','D','E','F','G','H',
+  'I','J','K','L','M','N','O','P',
+  'Q','R','S','T','U','V','W','X',
+  'Y','Z',' ', '-', '!', '.', '/', '?'
+};
+
+String received = "";
+
+int receive5bit() {
+  // Wait for start bit (line goes LOW)
+  while (digitalRead(rxPin) == HIGH) {
+    ; // idle, waiting
+  }
+
+  // wait 1.5 bit periods to sample the center of bit0 (LSB)
+  delay(bitDelay + bitDelay/2);
+
+  int code = 0;
+  String binaryStr = "";
+
+  for (int i = 0; i < 5; ++i) {
+    int level = digitalRead(rxPin);
+    if (level == HIGH) {
+      code |= (1 << i); // LSB first
+      binaryStr = "1" + binaryStr; // store bits MSB left
+    } else {
+      binaryStr = "0" + binaryStr;
+    }
+    delay(bitDelay); // move to center of next bit
+  }
+
+  delay(bitDelay);
+
+  // Display binary string on LCD or Serial
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Binary:");
+  lcd.setCursor(0, 1);
+  lcd.print(binaryStr);
+
+  return code & 0x1F;
+}
+
+void setup() {
+  pinMode(rxPin, INPUT);
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0,0);
+  lcd.print("Receiver Ready");
+  Serial.begin(9600); // optional for debug
+}
+
+void loop() {
+  int code = receive5bit();
+  if (code >= 0 && code < 32) {
+    char c = codeToChar[code];
+
+    // Stop receiving if '.' is received
+    if (c == '.') {
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("End of Msg:");
+      lcd.setCursor(0,1);
+      lcd.print(received);
+      while(1); // stop further reception
+    }
+
+    received += c;
+
+    // keep display to 16 chars; show last 16 if longer
+    String display = received;
+    if (display.length() > 16) display = display.substring(display.length()-16);
+
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Received:");
+    lcd.setCursor(0,1);
+    lcd.print(display);
+
+    Serial.print(c); // optional: see received char in Serial
+  }
+}
