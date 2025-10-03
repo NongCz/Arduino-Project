@@ -2,10 +2,10 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(0x26, 16, 2); // change address if needed
+LiquidCrystal_I2C lcd(0x26, 16, 2);
 
 const int txPin = 13;
-const unsigned int bitDelay = 200; // ms per bit (adjust: smaller = faster)
+const unsigned int bitDelay = 200;
 
 // Character map used by both boards:
 // 0..25 => 'A'..'Z'
