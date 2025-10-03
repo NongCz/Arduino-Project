@@ -1,10 +1,10 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(0x26, 16, 2); // change address if needed
+LiquidCrystal_I2C lcd(0x26, 16, 2);
 
 const int rxPin = 13;
-const unsigned int bitDelay = 200; // must match transmitter
+const unsigned int bitDelay = 200;
 
 // Reverse map: code -> character
 const char codeToChar[32] = {
